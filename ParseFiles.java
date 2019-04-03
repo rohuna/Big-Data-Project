@@ -11,18 +11,21 @@ public class ParseFiles
 {
     //a list of County objects to store all the data
     ArrayList<County> dataByCounty;
-    
-    private final String ETHNICITY_FILE = "cc-est2017-alldata.csv";
 
-	// indeces for each ethnicity value
-	private final int CTYNAME = 4;
-	private final int WA_MALE = 10;
-	private final int WA_FEMALE = 11;
-	private final int BA_MALE = 12;
-	private final int BA_FEMALE = 13;
-	private final int TOTAL_INDECES = 80;
-	private final int GROUPS = 19;
-	private final int REPEAT = 10;
+    // stores each data set name
+    private final String ETHNICITY_FILE = "cc-est2017-alldata.csv";
+    private final String EDUCATION_FILE = "Education.csv";
+    private final String UNEMPLOYMENT_FILE = "UnemploymentMed.csv";
+
+    // indeces for each ethnicity value
+    private final int CTYNAME = 4; // county name
+    private final int WA_MALE = 10; // white male count
+    private final int WA_FEMALE = 11; // white female count
+    private final int BA_MALE = 12; // black male count
+    private final int BA_FEMALE = 13; // black female count
+    private final int TOTAL_INDECES = 80; // total data points per county
+    private final int GROUPS = 19; // age groups for county
+    private final int REPEAT = 10; // years that data is taken
 
     //main method
     public static void main(String[] args)
@@ -34,8 +37,6 @@ public class ParseFiles
     //constructor
     public ParseFiles()
     {
-        
-        
         dataByCounty = new ArrayList<County>();
     }
 
@@ -45,33 +46,50 @@ public class ParseFiles
         getEduData();
         getUnempData();
         getRaceData();
+        printData();
     }
 
-    /*
-     * Gets data from the education.csv file and updates a list
-     * of counties with the data.
+    /**
+     * Puts the lines of the data file in a list
+     * @param dataName      the data that is being put into a list
+     * @return              the list of lines
      */
-    public void getEduData()
-    {
-        //the number of lines in the file
-        int lineCount = 0;
+    public ArrayList<String> getLinesList(String dataName) {
 
+        Scanner reader;
         //uses FileUtils to read the file
-        Scanner reader = FileUtils.openToRead("Education.csv");
+        if(dataName.equals("education")){
+            reader = FileUtils.openToRead(EDUCATION_FILE);
+        }
+
+        else {
+            reader = FileUtils.openToRead(UNEMPLOYMENT_FILE);
+        }
 
         //lines taken from the education.csv file
-        ArrayList<String> eduLines = new ArrayList<String>();;
+        ArrayList<String> lines = new ArrayList<String>();
 
         //add all the lines of the file into a list
         while(reader.hasNext())
         {
             String line = reader.nextLine();
-            lineCount++;
-            eduLines.add(line);
+            lines.add(line);
         }
 
+        return lines;
+    }
+
+    /**
+     * Gets data from the education.csv file and updates a list
+     * of counties with the data.
+     */
+    public void getEduData()
+    {
+        //lines taken from the education.csv file
+        ArrayList<String> eduLines = getLinesList("education");
+
         //an array of each tokenized piece of data for every line
-        String[][] data = new String[lineCount][lineCount];
+        String[][] data = new String[eduLines.size()][eduLines.size()];
 
         //the number of pieces of data that have occured in the line
         int dataNum = 0;
@@ -114,7 +132,7 @@ public class ParseFiles
             dataNum = 0;
         }
 
-        //for every line, save the nesscary data into County objects
+        //for every line, save the nessecary data into County objects
         for(int i = 0; i < eduLines.size(); i++)
         {  
             //if the line contains a county, add the county to the list of counties
@@ -134,26 +152,12 @@ public class ParseFiles
      * of counties with the data.
      */
     public void getUnempData()
-    {
-        //the number of lines in the file
-        int lineCount = 0;
-
-        //uses FileUtils to read the file
-        Scanner reader = FileUtils.openToRead("UnemploymentMed.csv");
-        
+    {   
         //lines taken from the unemploymentmed.csv file
-        ArrayList<String> unemploymentLines = new ArrayList<String>();
-
-        //add all the lines of the file into a list
-        while(reader.hasNext())
-        {
-            String line = reader.nextLine();
-            lineCount++;
-            unemploymentLines.add(line);
-        }
+        ArrayList<String> unemploymentLines = getLinesList("unemployment");
 
         //an array of each tokenized piece of data for every line
-        String[][] data = new String[lineCount][lineCount];
+        String[][] data = new String[unemploymentLines.size()][unemploymentLines.size()];
 
         //the number of pieces of data that have occured in the line
         int dataNum = 0;
@@ -219,7 +223,7 @@ public class ParseFiles
         }
     }
 
-    /*
+    /**
      * Gets data from the cc-est2017-alldata.csv file about the
      * population of certain races in each county and updates a list 
      * of counties with the data.
@@ -230,49 +234,36 @@ public class ParseFiles
         Scanner sc = FileUtils.openToRead(ETHNICITY_FILE);
 
         //skip the headers
-		sc.nextLine(); 
+        sc.nextLine(); 
 
         //the data to take from the line
         String[] tempData = new String[TOTAL_INDECES];
 
         // temp name of county
-		String tempName = ""; 
+        String tempName = ""; 
 
         // name of the state
         String stateName = ""; 
 
-        // temp count of black population
-		//double tempB = 0.0; 
-
-        // temp count of white population
-		//double tempW = 0.0; 
-
         // iterates through the list of counties
-		int index = 0; 
-
-        //total amount of white population
-		double totalW = 0.0;
-
-        //total amount of black population
-		double totalB = 0.0;
-
-        //create a file to print all the information to
-        PrintWriter out = FileUtils.openToWrite("EduUnemployment.csv");
-        out.println("\"State,County Name, High School Diploma Only Rate 2012 - 2016, " +
-        "Average Unemployment Rate 2012 - 2016, Black population, White Population\"");
+        int index = 0;
         
         //loops throught the whole file
-		while(sc.hasNext()) {
+        while(sc.hasNext()) {
             //parse the current line and get the data
             tempData = parseLine(sc.nextLine());
+
             double tempW = 0;
             double tempB = 0;
+
+            // find the correct year and age group
             if(Integer.parseInt(tempData[6]) == 0 && Integer.parseInt(tempData[5]) == 10 )
             {
+                // aggregate values for male and female for black and white population
                 tempW = Double.parseDouble(tempData[WA_MALE]) 
-                + Double.parseDouble(tempData[WA_FEMALE]);
+                        + Double.parseDouble(tempData[WA_FEMALE]);
                 tempB = Double.parseDouble(tempData[BA_MALE]) 
-                + Double.parseDouble(tempData[BA_FEMALE]);
+                        + Double.parseDouble(tempData[BA_FEMALE]);
 
                 //set the name of the county
                 tempName = tempData[4];
@@ -294,19 +285,41 @@ public class ParseFiles
                         //set the white and black population of the county
                         county.setW(tempW);
                         county.setB(tempB);
-
-                        //print the information of the countyto the output file
-                        out.printf("\n%s,%s,%s,%s,%s,%s", county.state, county.name, 
-                        county.hsDiploma2012, county.avgUnemployment, county.ba, county.wa);
                     }
                 }
             }
-			index++;
-		}
+            index++;
+        }
+    }
+
+    /**
+     * Prints the data to an output file
+     */
+    public void printData() {
+        //create a file to print all the information to
+        PrintWriter out = FileUtils.openToWrite("Output.csv");
+        out.println("\"State,County Name, High School Diploma Only Rate 2012 - 2016, " +
+        "Average Unemployment Rate 2012 - 2016, Black population, White Population\"");
+
+        //loops through every county and determines if 
+        //the county matches the current county being read
+        for(int i = 0; i < dataByCounty.size(); i++)
+        {
+            // print the counties will full values
+            if(dataByCounty.get(i).getName() != null &&  
+                dataByCounty.get(i).getAvgUnemployment() != null)
+            {
+                County county = dataByCounty.get(i);
+
+                //print the information of the county to the output file
+                out.printf("\n%s,%s,%s,%s,%s,%s", county.getState(), county.getName(), 
+                county.getHsDiploma2012(), county.getAvgUnemployment(), county.getBa(), county.getWa());
+            }
+        }
 
         //close the printwriter object
         out.close();       
-	}
+    }
 
     /**
      * Used to get the abbreviation of a state based on
@@ -506,26 +519,26 @@ public class ParseFiles
      * @param line          the line to parse
      * @return              a String array of each data piece
      */
-	public String[] parseLine(String line) {
+    public String[] parseLine(String line) {
         
         //the array of Strings to be returned
-		String[] result = new String[TOTAL_INDECES];
+        String[] result = new String[TOTAL_INDECES];
 
         //the current index in the line
-		int index = 0; 
+        int index = 0; 
 
-		// initializing array elements
-		for(int i=0; i<result.length; i++)
-			result[i] = "";
+        // initializing array elements
+        for(int i=0; i<result.length; i++)
+            result[i] = "";
 
-		// add tokens to array, skipping commas
-		for(int i=0; i<result.length; i++) {
-			while(index < line.length() && line.charAt(index) != ',') {
-				result[i] += line.charAt(index);
-				index++;
-			}
-			index++;
-		}
-		return result;
+        // add tokens to array, skipping commas
+        for(int i=0; i<result.length; i++) {
+            while(index < line.length() && line.charAt(index) != ',') {
+                result[i] += line.charAt(index);
+                index++;
+            }
+            index++;
+        }
+        return result;
     }
 }
